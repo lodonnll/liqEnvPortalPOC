@@ -1,0 +1,186 @@
+// Using a fixed Oracle time zone helps avoid machine and deployment differences
+process.env.ORA_SDTZ = 'UTC';
+
+var express = require('express');
+var bodyParser = require('body-parser');
+var path  = require('path');
+var expressValidator = require('express-validator');
+var oracledb = require('oracledb');
+var dbConfig = require('./dbconfig.js');
+
+var app = express();
+
+
+//middleware
+var branchQuery  = function(req,res,next){
+	console.log('logging...');
+	rundbAUX();
+	next(); //pass on to net piece of mmiddle ware
+}
+//tell app to use middle ware
+app.use(branchQuery);
+
+
+//View Engine
+app.set('view engine','ejs');
+app.set('views',path.join(__dirname,'views'));
+
+//Body Parser Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended : false}))
+//set static path
+app.use(express.static(path.join(__dirname,'public')));
+//route request to home page of app, and callback function (unnamed)
+// express validator middleware
+app.use(expressValidator()); 
+
+//Global Vars defined in here
+app.use(function(req,res,next){
+	res.locals.errors = null; //a global var
+	res.locals.liqbranches = null; //a global var
+	next();
+});
+
+//data sample json
+var person = {
+	name : 'Lochlan',
+	age : 44
+};
+
+//dummy data
+ liqbranches = [{BRN_CDE_BRANCH : 'B1' , BRN_DSC_BRANCH : 'Branch one'},
+                {BRN_CDE_BRANCH : 'B2' , BRN_DSC_BRANCH : 'Branch Two'},
+				{BRN_CDE_BRANCH : 'B3' , BRN_DSC_BRANCH : 'Branch Three'}
+			   ]
+
+
+	const asyncMiddleware = require('./utils/asyncMiddleware');		
+//asyncMiddleware( async (req, res, next) => {	
+app.get('/', 
+	function(req,res){
+	//res.send('Hello CS Loan IQ');
+	//res.json(person);
+	//rundbSynch();
+	var aTitle = 'Customer Support Portal';
+	console.log('respond render');
+	res.render('index',{
+		title : aTitle,
+		branches : liqbranches
+		});
+});
+//------------------------------------------------
+async function  rundbAUX(){
+	await rundb();
+	console.log('rundbAUX');
+}
+
+
+async function rundb() {
+  let connection;
+
+  try {
+
+    let sql, binds, options, result;
+
+    connection = await oracledb.getConnection(  {
+      user          : dbConfig.user,
+      password      : dbConfig.password,
+      connectString : dbConfig.connectString
+    });
+
+
+    // Insert some data
+
+    /*sql = `INSERT INTO mytab VALUES (:1, :2)`;
+
+    binds = [ [101, "Alpha" ], [102, "Beta" ], [103, "Gamma" ] ];
+
+    // For a complete list of options see the documentation.
+    options = {
+      autoCommit: true,
+      // batchErrors: true,  // continue processing even if there are data errors
+      bindDefs: [
+        { type: oracledb.NUMBER },
+        { type: oracledb.STRING, maxSize: 20 }
+      ]
+    };
+
+    result = await connection.executeMany(sql, binds, options);
+
+    console.log("Number of rows inserted:", result.rowsAffected);
+    */
+    // Query the data
+
+    sql = 'SELECT BRN_CDE_BRANCH , BRN_DSC_BRANCH FROM VLS_BRANCH';
+
+    binds = {};
+
+    // For a complete list of options see the documentation.
+    options = {
+      outFormat: oracledb.OBJECT   // query result format
+      // extendedMetaData: true,   // get extra metadata
+      // fetchArraySize: 100       // internal buffer allocation size for tuning
+    };
+
+    result = await connection.execute(sql, binds, options);
+
+    console.log("Column metadata: ", result.metaData);
+    console.log("Query results: ");
+    console.log(result.rows);
+	
+	liqbranches = result.rows;
+
+    // Show the date.  The value of ORA_SDTZ affects the output
+
+    /*sql = `SELECT TO_CHAR(CURRENT_DATE, 'DD-Mon-YYYY HH24:MI') AS CD FROM DUAL`;
+    result = await connection.execute(sql, binds, options);
+    console.log("Current date query results: ");
+    console.log(result.rows[0]['CD']);
+    */
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (connection) {
+      try {
+        await 
+		connection.close();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+}
+
+//------------------------------------------------
+
+app.post('/branches/add', function(req,res){
+	//console.log(req.body.branchCode);	
+	req.checkBody('branchCode','Branch may not be empty').notEmpty();
+	var errors = req.validationErrors();
+	
+	if (errors){
+		console.log('Errors');
+		var aTitle = 'Customer Support Portal';
+		res.render('index',{
+		title : aTitle,
+		branches : liqbranches,
+		errors : errors
+		});
+	}
+	else {
+	  var branchCode = req.body.branchCode;
+	  //TODO: create a new branch
+	  console.log('Success');
+	  
+	  //respond something for now
+	  res.render('index',{
+		title : aTitle,
+		branches : liqbranches,
+		errors : errors
+		});
+	}
+});
+
+app.listen(3000, function(){
+	console.log('Server started on port 3000')
+	});

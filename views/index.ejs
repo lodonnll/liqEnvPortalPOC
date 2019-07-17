@@ -1,0 +1,51 @@
+<% include partials/header %>
+	
+	    <ul class="nav navbar-nav">
+            <li>This solves the issue of server access control for CS while allowing server logs and controlled access for analysis. (And I also got to learn Node.js)</li>
+
+            <li>TODO: Broadcast server logs in browser</li>
+
+            <li><a href="/about">About (we can make an API Call to any (working) server)</a></li>
+        </ul>
+
+	<h1> Add Branch (We can update DB) </h1>
+	 
+	 <% if (errors){ %>
+	 <ul>
+	 <% errors.forEach(function(error){ %>
+	  <li><%= error.msg %> </li>
+	 <% }) %>
+	 </ul>
+	 <% } %>
+	 
+	 <form method="POST" action="branches/post">
+	   <label>Branch Code</label><br>
+	   <input type="text" name="branchCode" >
+	   <br>
+	   <input type ="submit" value="Submit">
+	 </form>
+	 
+
+	 <h1> VLS_BRANCH (We can read DB) </h1>
+	 <ul>
+	 <% branches.forEach(function(branch){ %>
+	  <li><%= branch.BRN_CDE_BRANCH %>   -   <%= branch.BRN_DSC_BRANCH %></li>
+	 <% }) %>
+	 </ul>
+	 
+	 <h1> LOGINS (we can serve up important information for analysts) </h1>
+	 <ul>
+	 <% users.forEach(function(user){ %>
+	  <li><%= user.PWD_CHR_LOGIN_ID %>       -   <%= user.UPT_CDE_BRANCH %>      -   <%= user.JBF_DSC_JOB_FUNC %> </li>
+	 <% }) %>
+	 </ul>
+	 
+	 <h1> Business Dates </h1>
+	 <ul>
+	 <% environments.forEach(function(environment){ %>
+	  <li><%= environment.ENV_NME_VAR_CLASS %> - <%= environment.ENV_NME_VAR_NAME %> <%= environment.ENV_TXT_VAR_VALUE %> - <%= environment.ENV_TXT_COMMENT %></li>
+	 <% }) %>
+	 </ul>
+
+<% include partials/footer %>	 
+
